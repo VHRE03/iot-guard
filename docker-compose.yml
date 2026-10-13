@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: iot-guard-postgres
+    environment:
+      POSTGRES_DB: iotguard_db
+      POSTGRES_USER: iotguard_user
+      POSTGRES_PASSWORD: iotguard_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U iotguard_user -d iotguard_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: apache/kafka:latest
+    container_name: iot-guard-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      # Imagen oficial apache/kafka: usa prefijo KAFKA_* (no el KAFKA_CFG_* de Bitnami).
+      # KAFKA_<NOMBRE_CON_GUIONES> se traduce a la propiedad con puntos, p.ej. process.roles
+      - KAFKA_NODE_ID=0
+      - KAFKA_PROCESS_ROLES=controller,broker
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      # Dos listeners de clientes:
+      #   - PLAINTEXT (9092): para la aplicacion que corre en el HOST (advertised localhost:9092)
+      #   - INTERNAL (29092): para contenedores de la red de Docker, p.ej. kafka-ui (advertised kafka:29092)
+      - KAFKA_LISTENERS=PLAINTEXT://:9092,INTERNAL://:29092,CONTROLLER://:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      # Broker unico: los topicos internos no pueden pedir 3 replicas
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+    # Sin volumen: el montaje anterior apuntaba a /bitnami/kafka (ruta de la imagen Bitnami,
+    # que apache/kafka no usa). El almacenamiento es efimero: los topics se recrean al levantar.
+
+  # UI web para inspeccionar el broker: topics, mensajes en vivo, consumer groups y LAG.
+  # Acceso: http://localhost:8085 (8085 en el host porque la app usa el 8080).
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: iot-guard-kafka-ui
+    ports:
+      - "8085:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=iot-guard-local
+      # Listener interno del broker (contenedor a contenedor), no localhost:9092
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
+    depends_on:
+      - kafka
+
+volumes:
+  postgres_data:
