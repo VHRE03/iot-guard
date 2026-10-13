@@ -72,12 +72,15 @@ valida (`spring.jpa.hibernate.ddl-auto=validate`):
 
 | Migración | Tabla | Contenido |
 |---|---|---|
-| `V1__create_readings_table.sql` | `readings` | `id` (UUID), `sensor_id`, `temperature`, `humidity`, `timestamp`, auditoría y soft-delete |
+| `V1__create_readings_table.sql` | `readings` | `id` (UUID), `sensor_id`, `temperature`, `humidity`, auditoría y soft-delete |
 | `V2__create_audit_readings_table.sql` | `audit_readings` | `id` (UUID), `sensor_id`, `temperature`, `humidity`, `timestamp`, `processed_at` (DEFAULT NOW()), auditoría y soft-delete |
+| `V3__drop_timestamp_from_readings.sql` | `readings` | Elimina la columna `timestamp`: el instante de la lectura se representa con `created_at` |
 
 Todas las entidades extienden `BaseEntity`: `id` UUID autogenerado, `created_at`/`updated_at`
 (poblados automáticamente, sin `@EnableJpaAuditing`) y `is_deleted` (soft-delete gestionado
-por el servicio base).
+por el servicio base). En `readings` el momento de la lectura es `created_at`: el registro
+se crea justo cuando llega el `POST`, así que ambos instantes coinciden (y `updated_at`
+permite saber si una lectura fue corregida después).
 
 ## API REST
 
@@ -102,8 +105,7 @@ POST /api/v1/readings
 {
   "sensorId": "SENSOR-001",
   "temperature": 22.5,
-  "humidity": 60.2,
-  "timestamp": "2026-10-12T10:15:30Z"
+  "humidity": 60.2
 }
 ```
 

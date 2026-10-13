@@ -7,8 +7,6 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.Instant;
-
 @Entity
 @Table(name = "readings")
 @Getter
@@ -23,7 +21,4 @@ public class Reading extends BaseEntity {
 
     @Column(name = "humidity", nullable = false)
     private Double humidity;
-
-    @Column(name = "timestamp", nullable = false)
-    private Instant timestamp;
 }

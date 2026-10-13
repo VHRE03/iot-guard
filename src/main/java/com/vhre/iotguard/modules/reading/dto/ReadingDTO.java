@@ -9,12 +9,10 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.Instant;
-
 @Getter
 @Setter
 @Schema(description = "Data Transfer Object representing a Reading (sensor measurement)")
-@JsonPropertyOrder({"id", "sensorId", "temperature", "humidity", "timestamp", "createdAt", "updatedAt", "deleted"})
+@JsonPropertyOrder({"id", "sensorId", "temperature", "humidity", "createdAt", "updatedAt", "deleted"})
 public class ReadingDTO extends BaseDTO {
 
     @Schema(description = "Identificador del sensor que genero la lectura.", example = "SENSOR-001")
@@ -29,8 +27,4 @@ public class ReadingDTO extends BaseDTO {
     @Schema(description = "Humedad relativa registrada por el sensor.", example = "60.2")
     @NotNull
     private Double humidity;
-
-    @Schema(description = "Instante en el que el sensor genero la lectura.", example = "2026-10-12T10:15:30Z")
-    @NotNull
-    private Instant timestamp;
 }
